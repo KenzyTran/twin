@@ -1,0 +1,21 @@
+{
+  "full_name": "Tan Kiet Tran",
+  "name": "kenzytran",
+  "current_role": "Product R&D",
+  "location": "Ho Chi Minh City, Vietnam",
+  "email": "trantankiet140401@gmail.com",
+  "linkedin": "linkedin.com/in/kenzytran",
+  "specialties": [
+    "Your specialty 1",
+    "Your specialty 2",
+    "Your specialty 3"
+  ],
+  "years_experience": 3,
+  "education": [
+    {
+      "degree": "Bachelor's degree in Data Science",
+      "institution": "HUFLIT University",
+      "year": "2025"
+    }
+  ]
+}

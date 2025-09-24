@@ -1,0 +1,18 @@
+[
+  {
+    "role": "user",
+    "content": "xin chào, tôi tên là Huy"
+  },
+  {
+    "role": "assistant",
+    "content": "Xin chào Huy! Rất vui được gặp bạn. Bạn có muốn hỏi gì về AI, khoa học dữ liệu hoặc bất cứ điều gì liên quan đến công nghệ không? Tôi là Kiet Tran, rất hân hạnh hỗ trợ bạn!"
+  },
+  {
+    "role": "user",
+    "content": "tôi tên là gì"
+  },
+  {
+    "role": "assistant",
+    "content": "Bạn vừa nói tên là Huy mà! Có điều gì mình có thể giúp bạn hôm nay không?"
+  }
+]

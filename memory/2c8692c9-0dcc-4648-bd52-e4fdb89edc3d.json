@@ -1,0 +1,10 @@
+[
+  {
+    "role": "user",
+    "content": "Tôi tên là gì"
+  },
+  {
+    "role": "assistant",
+    "content": "Chào bạn! Bạn chưa cho mình biết tên của bạn đó. Bạn có thể chia sẻ tên để mình gọi bạn nhé?"
+  }
+]
