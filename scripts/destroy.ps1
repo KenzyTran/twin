@@ -16,6 +16,19 @@ Write-Host "Preparing to destroy $ProjectName-$Environment infrastructure..." -F
 # Navigate to terraform directory
 Set-Location (Join-Path (Split-Path $PSScriptRoot -Parent) "terraform")
 
+# Get AWS Account ID for backend configuration
+$awsAccountId = aws sts get-caller-identity --query Account --output text
+$awsRegion = if ($env:DEFAULT_AWS_REGION) { $env:DEFAULT_AWS_REGION } else { "us-east-1" }
+
+# Initialize terraform with S3 backend
+Write-Host "Initializing Terraform with S3 backend..." -ForegroundColor Yellow
+terraform init -input=false `
+  -backend-config="bucket=twin-terraform-state-$awsAccountId" `
+  -backend-config="key=$Environment/terraform.tfstate" `
+  -backend-config="region=$awsRegion" `
+  -backend-config="dynamodb_table=twin-terraform-locks" `
+  -backend-config="encrypt=true"
+
 # Check if workspace exists
 $workspaces = terraform workspace list
 if (-not ($workspaces | Select-String $Environment)) {
@@ -30,20 +43,15 @@ terraform workspace select $Environment
 
 Write-Host "Emptying S3 buckets..." -ForegroundColor Yellow
 
-# Get AWS Account ID for bucket names
-$awsAccountId = aws sts get-caller-identity --query Account --output text
-
-# Define bucket names with account ID
+# Define bucket names with account ID (matching Day 4 naming)
 $FrontendBucket = "$ProjectName-$Environment-frontend-$awsAccountId"
 $MemoryBucket = "$ProjectName-$Environment-memory-$awsAccountId"
 
 # Empty frontend bucket if it exists
 try {
     aws s3 ls "s3://$FrontendBucket" 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "  Emptying $FrontendBucket..." -ForegroundColor Gray
-        aws s3 rm "s3://$FrontendBucket" --recursive
-    }
+    Write-Host "  Emptying $FrontendBucket..." -ForegroundColor Gray
+    aws s3 rm "s3://$FrontendBucket" --recursive
 } catch {
     Write-Host "  Frontend bucket not found or already empty" -ForegroundColor Gray
 }
@@ -51,42 +59,27 @@ try {
 # Empty memory bucket if it exists
 try {
     aws s3 ls "s3://$MemoryBucket" 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "  Emptying $MemoryBucket..." -ForegroundColor Gray
-        aws s3 rm "s3://$MemoryBucket" --recursive
-    }
+    Write-Host "  Emptying $MemoryBucket..." -ForegroundColor Gray
+    aws s3 rm "s3://$MemoryBucket" --recursive
 } catch {
     Write-Host "  Memory bucket not found or already empty" -ForegroundColor Gray
 }
 
 Write-Host "Running terraform destroy..." -ForegroundColor Yellow
 
-# Prepare terraform destroy command with proper argument handling
-$terraformArgs = @()
-$terraformArgs += "destroy"
-
-# Add var-file if it exists for prod environment
+# Run terraform destroy with auto-approve
 if ($Environment -eq "prod" -and (Test-Path "prod.tfvars")) {
-    $terraformArgs += "-var-file=prod.tfvars"
-}
-
-# Add variables with proper quoting
-$terraformArgs += "-var=project_name=$ProjectName"
-$terraformArgs += "-var=environment=$Environment"
-$terraformArgs += "-auto-approve"
-
-# Execute terraform destroy with splatting to avoid argument parsing issues
-Write-Host "Executing: terraform $($terraformArgs -join ' ')" -ForegroundColor Gray
-& terraform @terraformArgs
-
-# Check if terraform destroy was successful
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "Infrastructure for $Environment has been destroyed!" -ForegroundColor Green
+    terraform destroy -var-file=prod.tfvars `
+                     -var="project_name=$ProjectName" `
+                     -var="environment=$Environment" `
+                     -auto-approve
 } else {
-    Write-Host "Terraform destroy failed with exit code $LASTEXITCODE" -ForegroundColor Red
-    exit $LASTEXITCODE
+    terraform destroy -var="project_name=$ProjectName" `
+                     -var="environment=$Environment" `
+                     -auto-approve
 }
 
+Write-Host "Infrastructure for $Environment has been destroyed!" -ForegroundColor Green
 Write-Host ""
 Write-Host "  To remove the workspace completely, run:" -ForegroundColor Cyan
 Write-Host "   terraform workspace select default" -ForegroundColor White
